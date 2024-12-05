@@ -17,7 +17,7 @@ const todos = [
     id: "1",
     title: "Work Done",
     userId: "1",
-    completed: false,
+    completed: true,
     invitedUsers: [],
   },
   {
