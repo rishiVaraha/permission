@@ -9,6 +9,8 @@ import {
 import { hasPermission } from "@/lib/auth";
 import { User, type Todo } from "@/app/data/types";
 import { CheckIcon, XIcon } from "lucide-react";
+import { SignInButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 const todos = [
   {
@@ -41,24 +43,37 @@ const todos = [
   },
 ];
 
-const user: User = { roles: ["user"], id: "3", blockedBy: [] };
+// const user: User = { roles: ["user"], id: "3", blockedBy: [] };
 
-export default function Home() {
+export default async function Home() {
+  const { sessionClaims, userId } = await auth();
+  if (sessionClaims == null || userId === null) {
+    return (
+      <Button asChild>
+        <SignInButton />
+      </Button>
+    );
+  }
+  const user = {
+    id: userId,
+    roles: sessionClaims.roles,
+    blockedBy: [],
+  };
   return (
     <div className="container mx-auto px-4 my-6">
       <h1 className="text-2xl font-semibold mb-4">
         {user.id}:{user.roles.join(", ")}
       </h1>
       <div className="flex gap-4 mb-4">
-        <GeneralButtonCheck resource="todos" action="view" />
-        <GeneralButtonCheck resource="todos" action="create" />
-        <GeneralButtonCheck resource="todos" action="update" />
-        <GeneralButtonCheck resource="todos" action="delete" />
+        <GeneralButtonCheck user={user} resource="todos" action="view" />
+        <GeneralButtonCheck user={user} resource="todos" action="create" />
+        <GeneralButtonCheck user={user} resource="todos" action="update" />
+        <GeneralButtonCheck user={user} resource="todos" action="delete" />
       </div>
       <ul className="grid gap-4 grid-cols-2">
         {todos.map((todo) => (
           <li key={todo.id}>
-            <Todo {...todo} />
+            <Todo user={user} {...todo} />
           </li>
         ))}
       </ul>
@@ -66,7 +81,7 @@ export default function Home() {
   );
 }
 
-function Todo(todo: Todo) {
+function Todo({ user, ...todo }: { user: any } & Todo) {
   const { title, userId, completed, invitedUsers } = todo;
   return (
     <Card>
@@ -85,18 +100,20 @@ function Todo(todo: Todo) {
         </CardDescription>
       </CardHeader>
       <CardFooter className="gap-2">
-        <TodoButtonCheck action="view" todo={todo} />
-        <TodoButtonCheck action="update" todo={todo} />
-        <TodoButtonCheck action="delete" todo={todo} />
+        <TodoButtonCheck user={user} action="view" todo={todo} />
+        <TodoButtonCheck user={user} action="update" todo={todo} />
+        <TodoButtonCheck user={user} action="delete" todo={todo} />
       </CardFooter>
     </Card>
   );
 }
 
 function GeneralButtonCheck({
+  user,
   resource,
   action,
 }: {
+  user: any;
   resource: "todos" | "comments";
   action: "view" | "create" | "update" | "delete";
 }) {
@@ -112,9 +129,11 @@ function GeneralButtonCheck({
 }
 
 function TodoButtonCheck({
+  user,
   todo,
   action,
 }: {
+  user: any;
   todo: Todo;
   action: "view" | "delete" | "update" | "create";
 }) {
